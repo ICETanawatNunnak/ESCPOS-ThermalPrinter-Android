@@ -116,42 +116,28 @@ public class EscPosPrinterCommands {
 
         byte[] imageBytes = EscPosPrinterCommands.initGSv0Command(bytesByLine, bitmapHeight);
 
-        int i = 8,
-            greyscaleCoefficientInit = 0,
-            gradientStep = 6;
-
-        double
-            colorLevelStep = 765.0 / (15 * gradientStep + gradientStep - 1);
-
+        int i = 8;
         for (int posY = 0; posY < bitmapHeight; posY++) {
-            int greyscaleCoefficient = greyscaleCoefficientInit,
-                greyscaleLine = posY % gradientStep;
             for (int j = 0; j < bitmapWidth; j += 8) {
-                int b = 0;
+                StringBuilder stringBinary = new StringBuilder();
                 for (int k = 0; k < 8; k++) {
                     int posX = j + k;
                     if (posX < bitmapWidth) {
                         int color = bitmap.getPixel(posX, posY),
-                            red = (color >> 16) & 255,
-                            green = (color >> 8) & 255,
-                            blue = color & 255;
+                                r = (color >> 16) & 0xff,
+                                g = (color >> 8) & 0xff,
+                                b = color & 0xff;
 
-                        if ((red + green + blue) < ((greyscaleCoefficient * gradientStep + greyscaleLine) * colorLevelStep)) {
-                            b |= 1 << (7 - k);
+                        if (r > 160 && g > 160 && b > 160) {
+                            stringBinary.append("0");
+                        } else {
+                            stringBinary.append("1");
                         }
-
-                        greyscaleCoefficient += 5;
-                        if (greyscaleCoefficient > 15) {
-                            greyscaleCoefficient -= 16;
-                        }
+                    } else {
+                        stringBinary.append("0");
                     }
                 }
-                imageBytes[i++] = (byte) b;
-            }
-
-            greyscaleCoefficientInit += 2;
-            if (greyscaleCoefficientInit > 15) {
-                greyscaleCoefficientInit = 0;
+                imageBytes[i++] = (byte) Integer.parseInt(stringBinary.toString(), 2);
             }
         }
 

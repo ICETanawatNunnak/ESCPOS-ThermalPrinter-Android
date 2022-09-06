@@ -128,7 +128,7 @@ public class EscPosPrinterCommands {
                                 g = (color >> 8) & 0xff,
                                 b = color & 0xff;
 
-                        if (r > 160 && g > 160 && b > 160) {
+                        if (r > 220 && g > 220 && b > 220) {
                             stringBinary.append("0");
                         } else {
                             stringBinary.append("1");

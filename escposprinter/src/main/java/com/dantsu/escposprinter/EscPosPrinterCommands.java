@@ -83,15 +83,22 @@ public class EscPosPrinterCommands {
     private boolean useEscAsteriskCommand;
 
 
-    public static byte[] initImageCommand(int bytesByLine, int bitmapHeight) {
+    public static byte[] initGSv0Command(int bytesByLine, int bitmapHeight) {
         int
-                xH = bytesByLine / 256,
-                xL = bytesByLine - (xH * 256),
-                yH = bitmapHeight / 256,
-                yL = bitmapHeight - (yH * 256);
+            xH = bytesByLine / 256,
+            xL = bytesByLine - (xH * 256),
+            yH = bitmapHeight / 256,
+            yL = bitmapHeight - (yH * 256);
 
         byte[] imageBytes = new byte[8 + bytesByLine * bitmapHeight];
-        System.arraycopy(new byte[]{0x1D, 0x76, 0x30, 0x00, (byte) xL, (byte) xH, (byte) yL, (byte) yH}, 0, imageBytes, 0, 8);
+        imageBytes[0] = 0x1D;
+        imageBytes[1] = 0x76;
+        imageBytes[2] = 0x30;
+        imageBytes[3] = 0x00;
+        imageBytes[4] = (byte) xL;
+        imageBytes[5] = (byte) xH;
+        imageBytes[6] = (byte) yL;
+        imageBytes[7] = (byte) yH;
         return imageBytes;
     }
 
@@ -103,41 +110,34 @@ public class EscPosPrinterCommands {
      */
     public static byte[] bitmapToBytes(Bitmap bitmap) {
         int
-                bitmapWidth = bitmap.getWidth(),
-                bitmapHeight = bitmap.getHeight(),
-                bytesByLine = (int) Math.ceil(((float) bitmapWidth) / 8f);
+            bitmapWidth = bitmap.getWidth(),
+            bitmapHeight = bitmap.getHeight(),
+            bytesByLine = (int) Math.ceil(((float) bitmapWidth) / 8f);
 
-        byte[] imageBytes = EscPosPrinterCommands.initImageCommand(bytesByLine, bitmapHeight);
+        byte[] imageBytes = EscPosPrinterCommands.initGSv0Command(bytesByLine, bitmapHeight);
 
-        int i = 8, greyscaleCoefficientInit = 0;
+        int i = 8;
         for (int posY = 0; posY < bitmapHeight; posY++) {
-            int greyscaleCoefficient = greyscaleCoefficientInit;
             for (int j = 0; j < bitmapWidth; j += 8) {
-                int b = 0;
+                StringBuilder stringBinary = new StringBuilder();
                 for (int k = 0; k < 8; k++) {
                     int posX = j + k;
                     if (posX < bitmapWidth) {
                         int color = bitmap.getPixel(posX, posY),
-                                red = (color >> 16) & 255,
-                                green = (color >> 8) & 255,
-                                blue = color & 255;
+                                r = (color >> 16) & 0xff,
+                                g = (color >> 8) & 0xff,
+                                b = color & 0xff;
 
-                        if ((red + green + blue) < (greyscaleCoefficient * 51)) {
-                            b |= 1 << (7 - k);
+                        if (r > 220 && g > 220 && b > 220) {
+                            stringBinary.append("0");
+                        } else {
+                            stringBinary.append("1");
                         }
-
-                        greyscaleCoefficient += 5;
-                        if (greyscaleCoefficient > 15) {
-                            greyscaleCoefficient -= 16;
-                        }
+                    } else {
+                        stringBinary.append("0");
                     }
                 }
-                imageBytes[i++] = (byte) b;
-            }
-
-            greyscaleCoefficientInit += 2;
-            if (greyscaleCoefficientInit > 15) {
-                greyscaleCoefficientInit = 0;
+                imageBytes[i++] = (byte) Integer.parseInt(stringBinary.toString(), 2);
             }
         }
 
@@ -219,7 +219,7 @@ public class EscPosPrinterCommands {
         }
 
         if (byteMatrix == null) {
-            return EscPosPrinterCommands.initImageCommand(0, 0);
+            return EscPosPrinterCommands.initGSv0Command(0, 0);
         }
 
         int
@@ -232,10 +232,10 @@ public class EscPosPrinterCommands {
             i = 8;
 
         if (coefficient < 1) {
-            return EscPosPrinterCommands.initImageCommand(0, 0);
+            return EscPosPrinterCommands.initGSv0Command(0, 0);
         }
 
-        byte[] imageBytes = EscPosPrinterCommands.initImageCommand(bytesByLine, imageHeight);
+        byte[] imageBytes = EscPosPrinterCommands.initGSv0Command(bytesByLine, imageHeight);
 
         for (int y = 0; y < height; y++) {
             byte[] lineBytes = new byte[bytesByLine];
